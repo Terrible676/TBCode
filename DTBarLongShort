@@ -1,0 +1,131 @@
+//------------------------------------------------------------------------
+// 简称: DT_model_1027
+// 名称: DualThrust1027
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出:
+//------------------------------------------------------------------------
+
+// Dual Thrust code
+
+// Close - Close[1]
+// HistoryDataExist 判断Bar是否有效
+// CurrentBar Bar的序号
+
+
+
+Params
+	Numeric K1(0.5);
+	Numeric K2(0.8);
+	Numeric MDays(1);
+	Numeric lots(1);
+	Numeric offset(2);
+	Numeric BarsMulti(4);
+
+Vars
+	Numeric Range(0);
+	Numeric BuyTrig(0);
+	Numeric SellTrig(0);
+	Numeric HH;
+	Numeric LL;
+	Numeric HC;
+	Numeric LC;
+	Numeric i_offset;
+	Numeric CoverTrig;
+	Numeric RevTrig;
+	Numeric BuyBackPrice;
+	Numeric SellPrice;
+	Numeric LongPrice;
+	Numeric ShortPrice;
+	Numeric MBars;
+
+
+
+Begin
+
+
+	i_offset = offset*MinMove*PriceScale;
+	/*
+	HH = Highest(HighD(1),Mday);
+	HC = Highest(CloseD(1),Mday);
+	LL = Lowest(LowD(1),Mday);
+	LC = Lowest(CloseD(1),Mday);
+	*/
+	 
+	MBars = MDays;
+	If(BarType == 1)
+	{
+		MBars = IntPart(MDays*(BarsMulti*60/BarInterval));
+	}
+	
+	HH = Highest(High[1],MBars);
+	HC = Highest(Close[1],MBars);
+	LL = Lowest(Low[1],MBars);
+	LC = Lowest(Close[1],MBars);
+	Range = Max(HH - LC,HC - LL);
+	CoverTrig = K1*Range;
+	RevTrig = K2*Range;
+	BuyBackPrice = OpenD(0) + CoverTrig;
+	SellPrice = OpenD(0) - CoverTrig;
+	
+	LongPrice = OpenD(0) + RevTrig;
+	ShortPrice = OpenD(0) - RevTrig;
+	
+	If(GetGlobalVar(0) <> Date)
+	{
+		If(MarketPosition == 0)
+		{
+			If(High>=BuyBackPrice)
+			{
+				Buy(lots,Max(Open,BuyBackPrice)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+			If(Low<=SellPrice)
+			{
+				SellShort(lots,Min(Open,SellPrice)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		If(MarketPosition == 1)
+		{
+			If(Low<=SellPrice)
+			{
+				Sell(lots,Min(Open,SellPrice)+i_offset);
+				If(Low<=ShortPrice)
+				{
+					SellShort(lots,Min(Open,ShortPrice)+i_offset);
+				}
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		If(MarketPosition == -1)
+		{
+			If(High>=BuyBackPrice)
+			{
+				BuyToCover(lots,Max(Open,BuyBackPrice)+i_offset);
+				If(high>=LongPrice)
+				{
+					Buy(lots,Max(Open,LongPrice)+i_offset);
+				}
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+	}
+	 
+
+End
+
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015-10-27 08:39:48
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TrabeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
