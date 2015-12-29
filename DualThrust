@@ -1,0 +1,108 @@
+//------------------------------------------------------------------------
+// 简称: DT_model_1027
+// 名称: DualThrust1027
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出:
+//------------------------------------------------------------------------
+
+// Dual Thrust code
+
+// Close - Close[1]
+// HistoryDataExist 判断Bar是否有效
+// CurrentBar Bar的序号
+
+
+
+Params
+Numeric K1(0.5);
+Numeric K2(0.5);
+Numeric Mday(1);
+Numeric Nday(1);
+Numeric lots(1);
+Numeric offset(2);
+
+Vars
+Numeric BuyRange(0);
+Numeric SellRange(0);
+Numeric BuyTrig(0);
+Numeric SellTrig(0);
+Numeric HH;
+Numeric LL;
+Numeric HC;
+Numeric LC;
+Numeric i_offset;
+Numeric BuyPosition;
+Numeric SellPosition;
+
+
+Begin
+
+If(CurrentBar > 10*Max(Mday,Nday))
+{
+	i_offset = offset*MinMove*PriceScale;
+	HH = Highest(HighD(1),Mday);
+	HC = Highest(CloseD(1),Mday);
+	LL = Lowest(LowD(1),Mday);
+	LC = Lowest(CloseD(1),Mday);
+	SellRange = Max(HH - LC,HC - LL);
+	
+	HH = Highest(HighD(1),Nday);
+	HC = Highest(CloseD(1),Nday);
+	LL = Lowest(LowD(1),Nday);
+	LC = Lowest(CloseD(1),Nday);
+	BuyRange = Max(HH - LC,HC - LL);
+	
+	BuyTrig = K1*BuyRange;
+	SellTrig = K2*SellRange;
+	BuyPosition = OpenD(0) + BuyTrig;
+	SellPosition = OpenD(0) - SellTrig;
+	PlotNumeric("BuyPosition",BuyPosition);
+	PlotNumeric("SellPosition",SellPosition);
+	If(MarketPosition == 0)
+	{  
+		// 开多仓
+		If( High >= BuyPosition)
+		{
+			Buy(lots,Max(Open,BuyPosition)+i_offset);
+			Return;
+		}
+		// 开空仓
+		If(Low <= SellPosition)
+			{
+				SellShort(lots,Min(Open,SellPosition) - i_offset);
+				Return;
+			}
+			
+	}
+	If(MarketPosition == -1)
+	{
+		If(High >= BuyPosition)
+		{
+			Buy(lots,Max(Open,BuyPosition) + i_offset);
+			Return;
+		}
+	}
+	If(MarketPosition == 1)
+	{
+		If(Low <= SellPosition)
+		{
+			SellShort(lots,Min(Open,SellPosition) - i_offset);
+			Return;
+		}
+	}
+	
+	
+	
+}
+
+End
+
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015-10-27 08:39:48
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TrabeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
