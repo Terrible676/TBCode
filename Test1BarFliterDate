@@ -1,0 +1,66 @@
+//------------------------------------------------------------------------
+// 简称: Test1
+// 名称: 
+// 类别: 公式应用
+// 类型: 用户应用 
+// 输出:
+//------------------------------------------------------------------------
+
+Params
+	Numeric Money(1000000);
+	Numeric Length(5);
+	Numeric FliterNum(0);
+	Numeric MaxTradeTime(3);
+Vars
+
+	Numeric  MA;
+	NumericSeries ATR;
+	Numeric Lots;
+	Numeric UpFliter;
+	Numeric DownFliter;
+	Numeric AdjLength;
+Begin
+	
+	AdjLength = Length;
+	If(BarType==1)
+	{
+		AdjLength = Length*(240/BarInterval);
+	}
+	 
+	MA = Average(Close[1],AdjLength);
+	PlotNumeric("MA",MA);
+	ATR = AvgTrueRange(20);
+	Lots = 0.01*Money/(3*ATR[1]*bigpointvalue*ContractUnit);
+	UpFliter = 1+0.01*FliterNum;
+	DownFliter = 1-0.01*FliterNum;
+	
+	If(GetGlobalVar(1) <> Date)
+	{
+		SetGlobalVar(0,0);
+	}
+	If(GetGlobalVar(0) <= MaxTradeTime)
+	{
+		If(MarketPosition>=0 && Close<(MA*DownFliter) )
+		{
+			SellShort(Lots,Close);
+			SetGlobalVar(0,GetGlobalVar(0)+1);
+			SetGlobalVar(1,Date);
+			Return;
+		}
+		If(MarketPosition<=0 && Close>(MA*UpFliter) )
+		{
+			Buy(Lots,Close);
+			SetGlobalVar(0,GetGlobalVar(0)+1);
+			SetGlobalVar(1,Date);
+			Return;
+		}
+	}
+End
+  
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015-08-03 14:10:40
+// 版权所有	rdqh1500097
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TrabeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
