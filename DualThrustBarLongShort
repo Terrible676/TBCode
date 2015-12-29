@@ -1,0 +1,183 @@
+//------------------------------------------------------------------------
+// 简称: DT_model_1027
+// 名称: DualThrust1027
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出:
+//------------------------------------------------------------------------
+
+// Dual Thrust code
+
+// Close - Close[1]
+// HistoryDataExist 判断Bar是否有效
+// CurrentBar Bar的序号
+
+
+
+Params
+	Numeric K1(0.5);
+	Numeric K2(0.6);
+	Numeric MDays(1);
+	Numeric lots(1);
+	Numeric offset(2);
+	Numeric MaxRange(8);
+
+Vars
+	Numeric Range(0);
+	Numeric BuyTrig(0);
+	Numeric SellTrig(0);
+	Numeric HH;
+	Numeric LL;
+	Numeric HC;
+	Numeric LC;
+	Numeric i_offset;
+	Numeric CoverTrig;
+	Numeric RevTrig;
+	Numeric BuyBackPrice;
+	Numeric SellPrice;
+	Numeric LongPrice;
+	Numeric ShortPrice;
+	Numeric MBars;
+	Numeric CurrentProfit;
+	Numeric StopLossRate(8);
+	Numeric StopLossPrice;
+
+
+Begin
+
+	// PositionProfit
+	// MaxPositionLoss
+	// Portfolio_MaxDrawDownRatio
+
+
+	i_offset = offset*MinMove*PriceScale;
+	MBars = MDays;
+	If(BarType == 1)
+	{
+		MBars = IntPart(MDays*(240/BarInterval));
+	}
+	
+	HH = Highest(HighD(1),MBars);
+	HC = Highest(CloseD(1),MBars);
+	LL = Lowest(LowD(1),MBars);
+	LC = Lowest(CloseD(1),MBars);
+	Range = Max(HH - LC,HC - LL);
+	Range = Min(Range,0.01*MaxRange*CloseD(1));
+	CoverTrig = K1*Range;
+	RevTrig = K2*Range;
+	BuyBackPrice = OpenD(0) + CoverTrig;
+	SellPrice = OpenD(0) - CoverTrig;
+	
+	LongPrice = OpenD(0) + RevTrig;
+	ShortPrice = OpenD(0) - RevTrig;
+	
+	
+	// StopLoss
+	//CurrentProfit = (Close - LastEntryPrice);
+	/*
+	If(MarketPosition <> 0)
+	{
+		If(Portfolio_MaxDrawDownRatio >  0.01*StopLossRate)
+		{
+			If(MarketPosition == 1)
+			{
+				Sell(lots,Close);
+				Return;
+			}
+			If(MarketPosition == -1)
+			{
+				BuyToCover(lots,Close);
+				Return;
+			}
+		}
+	}
+	*/
+	/*
+	If(MarketPosition == 1)
+	{
+		StopLossPrice = LastEntryPrice*(1-0.01*StopLossRate);
+		If(Low < StopLossPrice)
+		{
+			Sell(lots,Min(Open,StopLossPrice)-i_offset);
+			Return;
+		}
+	}
+	
+	If(MarketPosition == -1)
+	{
+		StopLossPrice = LastEntryPrice*(1+0.01*StopLossRate);
+		If(High > StopLossPrice)
+		{
+			BuyToCover(lots,Max(Open,StopLossPrice)+i_offset);
+			Return;
+		}
+	}
+	*/
+	/*
+	If(MarketPosition <> 0)
+	{
+		If(CurrentProfit < StopLoss)
+		{
+			If(MarketPosition == 1)
+			{
+				Sell(lots,Close);
+				Return;
+			}
+			If(MarketPosition == -1)
+			{
+				BuyToCover(lots,Close);
+				Return;
+				
+			}
+		}
+	}
+	*/
+	If(MarketPosition == 0)
+	{
+		If(High>=BuyBackPrice)
+		{
+			Buy(lots,Max(Open,BuyBackPrice)+i_offset);
+			Return;
+		}
+		If(Low<=SellPrice)
+		{
+			SellShort(lots,Min(Open,SellPrice)+i_offset);
+		}
+	}
+	
+	If(MarketPosition == 1)
+	{
+		If(Low<=SellPrice)
+		{
+			Sell(lots,Min(Open,SellPrice)+i_offset);
+			If(Low<=ShortPrice)
+			{
+				SellShort(lots,Min(Open,ShortPrice)+i_offset);
+			}
+			Return;
+		}
+	}
+	
+	If(MarketPosition == -1)
+	{
+		If(High>=BuyBackPrice)
+		{
+			BuyToCover(lots,Max(Open,BuyBackPrice)+i_offset);
+			If(high>=LongPrice)
+			{
+				Buy(lots,Max(Open,LongPrice)+i_offset);
+			}
+			Return;
+		}
+	}
+	
+End
+
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015-10-27 08:39:48
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TrabeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
