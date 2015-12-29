@@ -1,0 +1,187 @@
+//------------------------------------------------------------------------
+// 简称: DT_model_1027
+// 名称: DualThrust1027
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出:
+//------------------------------------------------------------------------
+
+// Dual Thrust code
+
+// Close - Close[1]
+// HistoryDataExist 判断Bar是否有效
+// CurrentBar Bar的序号
+
+
+ 
+Params
+
+	Numeric K1(0.5);
+	Numeric MDays(1);
+	Numeric DonDays(6);
+	Numeric lots(1);
+	Numeric offset(0);
+	Numeric DonMulti(1);
+	Numeric MaxRange(8);
+	Numeric StopLossRate(5);
+	
+Vars
+	Numeric DRange(0);
+	Numeric BuyTrig(0);
+	Numeric SellTrig(0);
+	Numeric HH;
+	Numeric LL;
+	Numeric HC;
+	Numeric LC;
+	NumericSeries DonHigh;
+	NumericSeries DonLow;
+	Numeric i_offset;
+	Numeric BuyPosition;
+	Numeric SellPosition;
+	Numeric amount;
+	Numeric BarsNum;
+	Numeric MBars;
+	
+	Numeric LEPrice(0);
+	Numeric LEBars(0);
+	Numeric LastHigh;
+	Numeric LastLow;
+	Numeric StopLossPrice;
+	
+Begin
+
+	i_offset = offset*MinMove*PriceScale;
+	/*
+	HH = Highest(HighD(1),MDays);
+	HC = Highest(CloseD(1),MDays);
+	LL = Lowest(LowD(1),MDays);
+	LC = Lowest(CloseD(1),MDays);
+	*/
+
+	amount = DonMulti*lots;
+	BarsNum = DonDays;
+	MBars = MDays;
+	If(BarType == 1)
+	{
+		BarsNum =IntPart(DonDays*(240/BarInterval));
+		MBars = IntPart(MDays*(240/BarInterval));
+	}
+	
+	HH = Highest(High[1],MBars);
+	HC = Highest(Close[1],MBars);
+	LL = Lowest(Low[1],MBars);
+	LC = Lowest(Close[1],MBars);
+	DRange = Max(HH - LC,HC - LL);
+	DRange = Min(DRange,0.01*MaxRange*CloseD(1));
+	BuyTrig = K1*DRange;
+	SellTrig = K1*DRange;
+	BuyPosition = OpenD(0) + BuyTrig;
+	SellPosition = OpenD(0) - SellTrig;
+	 
+	DonHigh = Highest(High[1],BarsNum);
+	DonLow = Lowest(Low[1],BarsNum);
+	PlotNumeric("DonHigh",DonHigh);
+	PlotNumeric("DonLow",DonLow);
+	
+	If(Date<>GetGlobalVar(0))
+	{
+
+		If(MarketPosition <> 1)
+		{  
+			// 开多仓
+			If( High >= BuyPosition)
+			{	
+				Buy(lots,Max(Open,BuyPosition)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+	 
+		If(MarketPosition <> -1)
+		{
+			If(Low <= SellPosition)
+			{
+				SellShort(lots,Min(Open,SellPosition) - i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		// DonQian加仓
+		If(MarketPosition == 1)
+		{
+			If(Close > DonHigh)
+			{
+				Buy(amount,Close);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		If(MarketPosition == -1)
+		{
+			If(Close < DonLow)
+			{
+				SellShort(amount,Close);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+
+		
+	}
+			
+			
+	// 止损模块
+		
+	/*	
+	If(MarketPosition <> 0)
+	{
+		// CurrentEntries 获得当前持仓的建仓次数
+		// CurrentContracts 获得当前的持仓量
+		// AvgEntryPrice 平均持仓成本
+		// LastEntryPrice 最后一个持仓价格
+		// BarsSinceLastEntry 最后一个建仓到当前Bar的位置
+			
+		LEPrice = LastEntryPrice;
+		LEBars = BarsSinceLastEntry;
+			
+		If(MarketPosition == 1)
+		{
+			LastHigh = Highest(High[1],LEBars);
+			StopLossPrice = LastHigh*(1-0.01*StopLossRate);
+			If(Low <= StopLossPrice)
+			{
+				Sell(CurrentContracts,Min(Open,StopLossPrice)-i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+			
+		If(MarketPosition == -1)
+		{
+			LastLow = Lowest(Low[1],LEBars);
+			StopLossPrice = LastLow*(1+0.01*StopLossRate);
+			If(High >= StopLossPrice)
+			{
+				BuyToCover(CurrentContracts,Max(Open,StopLossPrice)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+			 
+			
+	}
+	*/
+
+End
+
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015-10-27 08:39:48
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TrabeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
