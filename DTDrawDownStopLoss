@@ -1,0 +1,185 @@
+//------------------------------------------------------------------------
+// 简称: DTDrawDownStopLoss
+// 名称: DualThrustStopLoss
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出://------------------------------------------------------------------------
+// 简称: DrawDownStopLoss
+// 名称: 
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出:
+//------------------------------------------------------------------------
+
+Params
+	Numeric K1(0.4);
+	Numeric K2(0.6);
+	Numeric MDays(1);
+	Numeric lots(1);
+	Numeric offset(2);
+	Numeric BarsMulti(4);
+	Numeric StopLossRate(3);
+
+Vars
+	Numeric Range(0);
+	Numeric BuyTrig(0);
+	Numeric SellTrig(0);
+	Numeric HH;
+	Numeric LL;
+	Numeric HC;
+	Numeric LC;
+	Numeric i_offset;
+	Numeric CoverTrig;
+	Numeric RevTrig;
+	Numeric BuyBackPrice;
+	Numeric SellPrice;
+	Numeric LongPrice;
+	Numeric ShortPrice;
+	Numeric MBars;
+
+	Numeric EBars;
+	Numeric LastHigh;
+	Numeric LastLow;
+	Numeric MyExitPrice;
+
+Begin
+
+
+	i_offset = offset*MinMove*PriceScale;
+	MBars = MDays;
+	If(BarType == 1)
+	{
+		MBars = IntPart(MDays*(BarsMulti*60/BarInterval));
+	}
+	
+	HH = Highest(High[1],MBars);
+	HC = Highest(Close[1],MBars);
+	LL = Lowest(Low[1],MBars);
+	LC = Lowest(Close[1],MBars);
+	Range = Max(HH - LC,HC - LL);
+	CoverTrig = K1*Range;
+	RevTrig = K2*Range;
+	BuyBackPrice = OpenD(0) + CoverTrig;
+	SellPrice = OpenD(0) - CoverTrig;
+	
+	LongPrice = OpenD(0) + RevTrig;
+	ShortPrice = OpenD(0) - RevTrig;
+	PlotNumeric("BuyBackPrice",BuyBackPrice);
+	PlotNumeric("SellPrice",SellPrice);
+	PlotNumeric("LongPrice",LongPrice);
+	PlotNumeric("ShortPrice",ShortPrice);
+	
+	
+	If(GetGlobalVar(0) <> Date)
+	{
+		If(MarketPosition == 0)
+		{
+			If(High>=BuyBackPrice)
+			{
+				Buy(lots,Max(Open,BuyBackPrice)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+			If(Low<=SellPrice)
+			{
+				SellShort(lots,Min(Open,SellPrice)+i_offset);
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		If(MarketPosition == 1)
+		{
+			If(Low<=SellPrice)
+			{
+				Sell(lots,Min(Open,SellPrice)+i_offset);
+				If(Low<=ShortPrice)
+				{
+					SellShort(lots,Min(Open,ShortPrice)+i_offset);
+					
+				}
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+		
+		If(MarketPosition == -1)
+		{
+			If(High>=BuyBackPrice)
+			{
+				BuyToCover(lots,Max(Open,BuyBackPrice)+i_offset);
+				If(high>=LongPrice)
+				{
+					Buy(lots,Max(Open,LongPrice)+i_offset);
+					
+				}
+				SetGlobalVar(0,Date);
+				Return;
+			}
+		}
+	}
+	
+	// BarsSinceLastEntry
+	LastHigh = High;
+	LastLow = Low;
+
+	If(MarketPosition <> 0)
+	{
+		EBars = BarsSinceLastEntry;
+		If(EBars>0)
+		{
+			LastHigh = Highest(high[1],EBars);
+			LastLow = Lowest(Low[1],EBars);
+		}
+		If(EBars == 0)
+		{
+			LastHigh = High;
+			LastLow = Low;
+		}
+	}
+	
+	//PlotNumeric("LastHigh",LastHigh);
+	//PlotNumeric("LastLow",LastLow);
+	
+	If(MarketPosition == 1)
+	{
+		MyExitPrice = LastHigh*(1-0.01*StopLossRate);
+		If(Low < MyExitPrice)
+		{
+			Sell(lots,Max(Open,MyExitPrice));
+		}
+	}
+	If(MarketPosition == -1)
+	{
+		MyExitPrice = LastLow*(1 + 0.01*StopLossRate);
+		If(High > MyExitPrice)
+		{	
+			BuyToCover(lots,Min(Open,MyExitPrice));
+		}
+	}
+	
+	
+	
+	
+End
+
+	
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015/12/30 11:09:09
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TradeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------
+// 编译版本	GS2010.12.08
+// 用户版本	2015/12/30 13:17:38
+// 版权所有	heyisheng99
+// 更改声明	TradeBlazer Software保留对TradeBlazer平台
+//			每一版本的TradeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------
